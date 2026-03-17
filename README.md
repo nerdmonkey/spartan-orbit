@@ -1,9 +1,9 @@
-<p align="center"><img src="docs/ssf_banner.png" alt="Lazaro - Based on Spartan Serverless Framework"></p>
+<p align="center"><img src="docs/ssf_banner.png" alt="Orbit - Serverless Framework for Azure"></p>
 
-# Lazaro
+# Orbit
 
 ## About
-Lazaro is a structured serverless framework for building scalable Python applications on **Azure**. Based on the Spartan Serverless Framework, it focuses exclusively on Azure with consistent structure and first-class integrations for serverless functions, event-driven workloads, and cloud-native applications.
+Orbit is a modern serverless framework for building scalable, event-driven Python applications on **Azure Functions**. Built on the Spartan framework principles, it leverages Python Programming Model V2 with decorators for clean, maintainable code and seamless Azure integration.
 
 ---
 
@@ -101,37 +101,92 @@ copy .env.example .env  # CMD
 
 ### Local Development
 
-**Test Logger:**
+**Start Azure Functions Locally:**
 ```bash
-python main.py
+# Install Azure Functions Core Tools (if not already installed)
+# macOS: brew tap azure/functions && brew install azure-functions-core-tools@4
+# Windows: npm install -g azure-functions-core-tools@4
+# Linux: See https://docs.microsoft.com/azure/azure-functions/functions-run-local
+
+# Start Azurite storage emulator (required)
+azurite --silent --location /tmp/azurite --debug /tmp/azurite/debug.log &
+
+# Start all functions
+func start
 ```
 
-**Run Azure Functions Locally:**
+**Test Functions with Event Grid:**
 ```bash
-# Install Azure Functions Core Tools first (if not already installed)
-# macOS: brew tap azure/functions && brew install azure-functions-core-tools@4
+# Test queue function
+curl -X POST http://localhost:7071/runtime/webhooks/EventGrid?functionName=queue \
+  -H "Content-Type: application/json" \
+  -H "aeg-event-type: Notification" \
+  -d '[{
+    "id": "test-1",
+    "eventType": "Custom.Queue.MessageReceived",
+    "subject": "queue/test",
+    "eventTime": "2026-03-17T12:00:00Z",
+    "data": {"operation": "enqueue_message", "message": "test"},
+    "dataVersion": "1.0"
+  }]'
 
-# Start all functions locally
-func start
+# Test app_configuration function
+curl -X POST http://localhost:7071/runtime/webhooks/EventGrid?functionName=app_configuration \
+  -H "Content-Type: application/json" \
+  -H "aeg-event-type: Notification" \
+  -d '[{
+    "id": "test-2",
+    "eventType": "Custom.Config.Updated",
+    "subject": "config/test",
+    "eventTime": "2026-03-17T12:00:00Z",
+    "data": {"operation": "get_configuration", "config_key": "test-key"},
+    "dataVersion": "1.0"
+  }]'
+
+# Test key_vault function
+curl -X POST http://localhost:7071/runtime/webhooks/EventGrid?functionName=key_vault \
+  -H "Content-Type: application/json" \
+  -H "aeg-event-type: Notification" \
+  -d '[{
+    "id": "test-3",
+    "eventType": "Microsoft.KeyVault.SecretNewVersionCreated",
+    "subject": "vault/secrets/test",
+    "eventTime": "2026-03-17T12:00:00Z",
+    "data": {"operation": "get_secret", "secret_name": "test-secret"},
+    "dataVersion": "1.0"
+  }]'
 ```
 
 ### Deployment to Azure
 
-**Quick Deploy:**
-```bash
-./deploy-azure.sh
-```
-
-**Manual Deploy:**
+**Deploy with Azure CLI:**
 ```bash
 # Login to Azure
 az login
 
+# Create resource group (if needed)
+az group create --name spartan-orbit-rg --location eastus
+
+# Create Function App
+az functionapp create \
+  --resource-group spartan-orbit-rg \
+  --consumption-plan-location eastus \
+  --runtime python \
+  --runtime-version 3.11 \
+  --functions-version 4 \
+  --name spartan-orbit-micro \
+  --storage-account <storage-account-name> \
+  --os-type Linux
+
 # Deploy functions
-func azure functionapp publish spartan-orbit-micro --python
+func azure functionapp publish spartan-orbit-micro
 ```
 
-See [AZURE_DEPLOYMENT.md](AZURE_DEPLOYMENT.md) for detailed deployment instructions.
+**Configure Event Grid Subscriptions:**
+```bash
+# After deployment, create Event Grid subscriptions for your functions
+# See Azure Functions Event Grid documentation for details
+```
 
 ---
 
@@ -141,20 +196,29 @@ See [AZURE_DEPLOYMENT.md](AZURE_DEPLOYMENT.md) for detailed deployment instructi
 spartan-orbit-micro/
 ├── app/
 │   ├── helpers/           # Utility helpers (logger, environment, context, tracer)
-│   └── services/          # Business logic services
+│   └── services/
 │       └── logging/       # Logger implementations (azure, file, stream, both)
 ├── config/                # Configuration files
 ├── docs/                  # Documentation
-├── functions/             # Azure Functions
-│   ├── queue/
-│   ├── app_configuration/
-│   └── key_vault/
 ├── tests/                 # Test suites
+│   ├── unit/             # Unit tests
+│   ├── integration/      # Integration tests
+│   └── e2e/              # End-to-end tests
+├── function_app.py       # Azure Functions app with all function definitions
 ├── host.json             # Azure Functions app configuration
 ├── local.settings.json   # Local development settings
-├── main.py               # Local testing script
-└── requirements.txt      # Python dependencies
+├── .funcignore           # Files to exclude from deployment
+├── requirements.txt      # Python dependencies
+└── pyproject.toml        # Poetry configuration
 ```
+
+### Azure Functions
+
+All functions are defined in `function_app.py` using Python Programming Model V2 with decorators:
+
+- **`queue`** - Event Grid trigger for Azure Queue Storage/Service Bus operations
+- **`app_configuration`** - Event Grid trigger for Azure App Configuration management
+- **`key_vault`** - Event Grid trigger for Azure Key Vault secret/key operations
 
 ---
 
