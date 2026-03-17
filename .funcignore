@@ -1,0 +1,46 @@
+# Azure Functions Ignore File
+# Exclude from deployment
+
+.git/
+.vscode/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.pytest_cache/
+.coverage
+.coveragerc
+htmlcov/
+.tox/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Development files
+.env
+.env.*
+*.log
+local.settings.json
+
+# Testing
+tests/
+pytest.ini
+tox.ini
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# IDE
+.idea/
+.DS_Store
+*.swp
+*.swo
+
+# Build artifacts
+dist/
+build/
+*.egg-info/

@@ -1,0 +1,12 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "APP_ENVIRONMENT": "local",
+    "LOG_LEVEL": "INFO",
+    "LOG_CHANNEL": "azure",
+    "LOGGER_TYPE": "azure"
+  },
+  "ConnectionStrings": {}
+}

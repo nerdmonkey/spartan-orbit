@@ -1,2 +1,2 @@
 [default]
-provider = gcp
+provider = azure

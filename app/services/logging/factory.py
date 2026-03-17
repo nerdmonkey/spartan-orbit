@@ -23,40 +23,30 @@ class LoggerFactory:
         "stream": StreamLogger,
         "file": FileLogger,
         "both": BothLogger,
-        # gcloud is handled separately due to lazy loading
+        # azure is handled separately due to lazy loading
     }
 
     @classmethod
-    def _get_gcloud_logger(cls) -> Type[BaseLogger]:
-        """Lazy loader for Google Cloud Logger to avoid dependency conflicts."""
-        if "gcloud" not in cls._lazy_logger_cache:
-            from app.services.logging.gcloud import GCloudLogger
+    def _get_azure_logger(cls) -> Type[BaseLogger]:
+        """Lazy loader for Azure Monitor Logger to avoid dependency conflicts."""
+        if "azure" not in cls._lazy_logger_cache:
+            from app.services.logging.azure_monitor import AzureMonitorLogger
 
-            cls._lazy_logger_cache["gcloud"] = GCloudLogger
-        return cls._lazy_logger_cache["gcloud"]
+            cls._lazy_logger_cache["azure"] = AzureMonitorLogger
+        return cls._lazy_logger_cache["azure"]
 
     @classmethod
-    def _is_gcp_environment(cls) -> bool:
-        """Detect if running in Google Cloud Platform environment."""
-        # Check for Google Cloud environment indicators
+    def _is_azure_environment(cls) -> bool:
+        """Detect if running in Azure environment."""
+        # Check for Azure environment indicators
         return any(
             [
-                env("GOOGLE_CLOUD_PROJECT"),
-                env("GCLOUD_PROJECT"),
-                env("GCP_PROJECT"),
-                env("GOOGLE_APPLICATION_CREDENTIALS"),
-                # Check for Cloud Run - K8s service account exists
-                os.path.exists("/var/run/secrets/kubernetes.io/serviceaccount"),
-                # Check for App Engine
-                env("GAE_APPLICATION"),
-                # Check for Compute Engine
-                (
-                    os.path.exists("/sys/class/dmi/id/product_name")
-                    and "Google"
-                    in open("/sys/class/dmi/id/product_name", "r").read().strip()
-                    if os.path.exists("/sys/class/dmi/id/product_name")
-                    else False
-                ),
+                env("FUNCTIONS_WORKER_RUNTIME"),
+                env("AZURE_FUNCTIONS_ENVIRONMENT"),
+                env("WEBSITE_INSTANCE_ID"),
+                env("WEBSITE_SITE_NAME"),
+                env("APPSETTING_WEBSITE_SITE_NAME"),
+                env("WEBSITE_HOSTNAME"),
             ]
         )
 
@@ -70,16 +60,16 @@ class LoggerFactory:
             logger_type or env("LOGGER_TYPE", env("LOG_CHANNEL", "file"))
         ).lower()
 
-        # Smart fallback: if gcloud is requested in truly local
+        # Smart fallback: if azure is requested in truly local
         # environment, fall back to 'both' for local development
         # Only fallback if APP_ENVIRONMENT explicitly says local/dev
-        # AND no GCP indicators
+        # AND no Azure indicators
         app_env = env("APP_ENVIRONMENT", "").lower()
-        if resolved_type == "gcloud" and app_env in ["local", "development"]:
-            is_gcp = cls._is_gcp_environment()
-            if not is_gcp:
+        if resolved_type == "azure" and app_env in ["local", "development"]:
+            is_azure = cls._is_azure_environment()
+            if not is_azure:
                 print(
-                    "⚠️  Warning: gcloud logger requested in local "
+                    "⚠️  Warning: azure logger requested in local "
                     "environment. Falling back to 'both' logger."
                 )
                 return "both"
@@ -94,7 +84,7 @@ class LoggerFactory:
         base_params = {"service_name": service_name, "level": level}
 
         # Add sample_rate for loggers that support it
-        if logger_type in ["file", "gcloud", "both"]:
+        if logger_type in ["file", "azure", "both"]:
             base_params["sample_rate"] = float(env("LOG_SAMPLE_RATE", "1.0"))
 
         return base_params
@@ -102,7 +92,7 @@ class LoggerFactory:
     @classmethod
     def get_supported_types(cls) -> List[str]:
         """Get list of all supported logger types."""
-        return list(cls._logger_registry.keys()) + ["gcloud"]
+        return list(cls._logger_registry.keys()) + ["azure"]
 
     @classmethod
     def create_logger(
@@ -117,7 +107,7 @@ class LoggerFactory:
         Args:
             service_name: Name of the service for logging identification
             level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-            logger_type: Type of logger to create (stream, file, gcloud, both)
+            logger_type: Type of logger to create (stream, file, azure, both)
 
         Returns:
             BaseLogger: Configured logger instance
@@ -135,8 +125,8 @@ class LoggerFactory:
             return logger_class(**params)
 
         # Handle lazy-loaded logger types
-        elif resolved_type == "gcloud":
-            logger_class = cls._get_gcloud_logger()
+        elif resolved_type == "azure":
+            logger_class = cls._get_azure_logger()
             return logger_class(**params)
 
         # Unknown logger type
