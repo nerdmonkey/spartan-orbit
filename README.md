@@ -1,6 +1,7 @@
 <p align="center"><img src="docs/ssf_banner.png" alt="Orbit - Serverless Framework for Azure"></p>
 
 # Orbit
+### Spartan for Azure
 
 ## About
 Orbit is a modern serverless framework for building scalable, event-driven Python applications on **Azure Functions**. Built on the Spartan framework principles, it leverages Python Programming Model V2 with decorators for clean, maintainable code and seamless Azure integration.
