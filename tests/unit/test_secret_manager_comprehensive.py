@@ -3,11 +3,10 @@ Comprehensive tests for SecretManager service with proper GCP SDK mocking.
 Focuses on credential detection, pagination, and utility methods to improve coverage.
 """
 
-import os
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
+
 import pytest
 from google.api_core import exceptions as gcp_exceptions
-from google.oauth2 import service_account
 
 
 class TestSecretManagerProjectDetection:
@@ -38,7 +37,7 @@ class TestSecretManagerProjectDetection:
         mock_env.side_effect = env_side_effect
 
         # Should not raise, should fall back
-        service = SecretManagerService()
+        SecretManagerService()
 
     @patch("app.services.secret_manager.default_credentials")
     @patch("app.services.secret_manager.env")
@@ -52,7 +51,7 @@ class TestSecretManagerProjectDetection:
 
         mock_creds.return_value = (MagicMock(), "gcp-env-project")
 
-        service = SecretManagerService()
+        SecretManagerService()
 
 
 class TestSecretManagerCredentialLoading:
@@ -76,7 +75,7 @@ class TestSecretManagerCredentialLoading:
         mock_creds.service_account_email = "sa@example.iam.gserviceaccount.com"
         mock_sa.Credentials.from_service_account_file.return_value = mock_creds
 
-        service = SecretManagerService()
+        SecretManagerService()
         # Should successfully initialize with credentials configured
 
     @patch("app.services.secret_manager.secretmanager")
@@ -99,7 +98,7 @@ class TestSecretManagerCredentialLoading:
             "GOOGLE_CLOUD_PROJECT": "test-project",
         }.get(key, default)
 
-        service = SecretManagerService()
+        SecretManagerService()
         mock_sa.Credentials.from_service_account_file.assert_not_called()
 
     @patch("os.path.exists")
@@ -121,7 +120,7 @@ class TestSecretManagerCredentialLoading:
         )
 
         # Should handle gracefully
-        service = SecretManagerService()
+        SecretManagerService()
 
     @patch("app.services.secret_manager.default_credentials")
     @patch("app.services.secret_manager.env")
@@ -133,7 +132,7 @@ class TestSecretManagerCredentialLoading:
         mock_default_creds = MagicMock()
         mock_creds.return_value = (mock_default_creds, "default-project")
 
-        service = SecretManagerService()
+        SecretManagerService()
         mock_creds.assert_called()
 
 
@@ -316,8 +315,8 @@ class TestSecretManagerErrorHandling:
     @patch("app.services.secret_manager.env")
     def test_handle_client_initialization_error(self, mock_env, mock_logger, mock_sm):
         """Test client initialization error handling."""
-        from app.services.secret_manager import SecretManagerService
         from app.exceptions.secret_manager import SecretManagerException
+        from app.services.secret_manager import SecretManagerService
 
         mock_logger.return_value = MagicMock()
         mock_sm.SecretManagerServiceClient.return_value = MagicMock()
@@ -356,7 +355,7 @@ class TestSecretManagerProjectConfiguration:
         mock_env.side_effect = lambda key, default=None: default
 
         # Should try multiple detection methods
-        service = SecretManagerService()
+        SecretManagerService()
         # Project ID will come from one of the fallback methods
 
 
@@ -372,7 +371,7 @@ class TestSecretManagerCredentialsChain:
         mock_env.return_value = None
 
         # Should try framework env, then default credentials
-        service = SecretManagerService()
+        SecretManagerService()
 
 
 class TestSecretManagerConnectionTesting:

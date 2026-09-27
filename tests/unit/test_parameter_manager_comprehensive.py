@@ -3,11 +3,7 @@ Comprehensive tests for ParameterManager service with proper GCP SDK mocking.
 Focuses on credential detection, pagination, and utility methods to improve coverage.
 """
 
-import os
-from unittest.mock import MagicMock, Mock, patch, call
-import pytest
-from google.api_core import exceptions as gcp_exceptions
-from google.oauth2 import service_account
+from unittest.mock import MagicMock, patch
 
 
 class TestParameterManagerProjectDetection:
@@ -38,7 +34,7 @@ class TestParameterManagerProjectDetection:
         mock_env.side_effect = env_side_effect
 
         # Should not raise, should fall back to other methods
-        service = ParameterManagerService()
+        ParameterManagerService()
         # Will use default or other detection methods
 
     @patch("app.services.parameter_manager.default_credentials")
@@ -53,7 +49,7 @@ class TestParameterManagerProjectDetection:
 
         mock_creds.return_value = (MagicMock(), "env-var-project")
 
-        service = ParameterManagerService()
+        ParameterManagerService()
         # Should detect from standard env vars or default credentials
 
 
@@ -78,7 +74,7 @@ class TestParameterManagerCredentialLoading:
         mock_creds.service_account_email = "test@example.iam.gserviceaccount.com"
         mock_sa.Credentials.from_service_account_file.return_value = mock_creds
 
-        service = ParameterManagerService()
+        ParameterManagerService()
         # Should successfully initialize with credentials configured
 
     @patch("app.services.parameter_manager.get_logger")
@@ -99,7 +95,7 @@ class TestParameterManagerCredentialLoading:
             "GOOGLE_CLOUD_PROJECT": "test-project",
         }.get(key, default)
 
-        service = ParameterManagerService()
+        ParameterManagerService()
         # Should not attempt to load from non-existent file
         mock_sa.Credentials.from_service_account_file.assert_not_called()
 
@@ -122,7 +118,7 @@ class TestParameterManagerCredentialLoading:
         )
 
         # Should log warning but continue
-        service = ParameterManagerService()
+        ParameterManagerService()
         # Service should still initialize
 
     @patch("app.services.parameter_manager.default_credentials")
@@ -135,7 +131,7 @@ class TestParameterManagerCredentialLoading:
         mock_creds = MagicMock()
         mock_default_creds.return_value = (mock_creds, "default-project")
 
-        service = ParameterManagerService()
+        ParameterManagerService()
         # Should use default credentials
         mock_default_creds.assert_called()
 
