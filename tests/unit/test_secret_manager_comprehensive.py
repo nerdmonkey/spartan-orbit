@@ -12,14 +12,16 @@ from google.api_core import exceptions as gcp_exceptions
 class TestSecretManagerProjectDetection:
     """Test project ID detection from various sources."""
 
+    @patch("app.services.secret_manager.secretmanager")
     @patch("app.services.secret_manager.env")
-    def test_framework_env_project_id_success(self, mock_env):
+    def test_framework_env_project_id_success(self, mock_env, mock_sm):
         """Test successful project ID detection from GOOGLE_CLOUD_PROJECT."""
         from app.services.secret_manager import SecretManagerService
 
         mock_env.side_effect = lambda key, default=None: {
             "GOOGLE_CLOUD_PROJECT": "test-project-456"
         }.get(key, default)
+        mock_sm.SecretManagerServiceClient.return_value = MagicMock()
 
         service = SecretManagerService()
         assert service.project_id == "test-project-456"
@@ -101,10 +103,13 @@ class TestSecretManagerCredentialLoading:
         SecretManagerService()
         mock_sa.Credentials.from_service_account_file.assert_not_called()
 
+    @patch("app.services.secret_manager.secretmanager")
     @patch("os.path.exists")
     @patch("app.services.secret_manager.service_account")
     @patch("app.services.secret_manager.env")
-    def test_framework_credentials_invalid_file(self, mock_env, mock_sa, mock_exists):
+    def test_framework_credentials_invalid_file(
+        self, mock_env, mock_sa, mock_exists, mock_sm
+    ):
         """Test handling of invalid credentials file."""
         from app.services.secret_manager import SecretManagerService
 
@@ -118,6 +123,7 @@ class TestSecretManagerCredentialLoading:
         mock_sa.Credentials.from_service_account_file.side_effect = ValueError(
             "Parse error"
         )
+        mock_sm.SecretManagerServiceClient.return_value = MagicMock()
 
         # Should handle gracefully
         SecretManagerService()

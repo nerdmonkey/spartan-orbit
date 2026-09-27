@@ -22,7 +22,7 @@ class TestParameterManagerProjectDetection:
         assert service.project_id == "test-project-123"
 
     @patch("app.services.parameter_manager.env")
-    def test_framework_env_project_id_exception(self, mock_env):
+    def test_framework_env_project_id_exception(self, mock_env, monkeypatch):
         """Test project ID detection handles exceptions from env."""
         from app.services.parameter_manager import ParameterManagerService
 
@@ -33,9 +33,10 @@ class TestParameterManagerProjectDetection:
 
         mock_env.side_effect = env_side_effect
 
-        # Should not raise, should fall back to other methods
-        ParameterManagerService()
-        # Will use default or other detection methods
+        # Framework env raises, should fall back to standard env vars
+        monkeypatch.setenv("GOOGLE_CLOUD_PROJECT", "fallback-project")
+        service = ParameterManagerService()
+        assert service.project_id == "fallback-project"
 
     @patch("app.services.parameter_manager.default_credentials")
     @patch("app.services.parameter_manager.env")
