@@ -10,7 +10,7 @@ To contribute to this project, please follow these steps:
 
 2. **Clone the Repository**: Clone your forked repository to your local machine using the following command:
    ```bash
-   git clone https://github.com/nerdmonkey/spartan-framework.git
+   git clone https://github.com/nerdmonkey/spartan-orbit.git
 
 3. **Create a Branch**: Create a new branch for your work with a descriptive name. For example, if you're adding a new feature, you can name your branch something like `feature/new-feature`:
    ```bash
@@ -19,7 +19,12 @@ To contribute to this project, please follow these steps:
 
 4. **Make Changes**: Make the necessary changes to the codebase. Ensure that your code follows the project's coding guidelines and conventions.
 
-5. **Test Your Changes**: Before submitting your changes, make sure to test them thoroughly to ensure they work as expected.
+5. **Test Your Changes**: Before submitting your changes, run the checks that CI will also run:
+   ```bash
+   tox -e lint
+   tox -e coverage
+   tox -e security
+   ```
 
 6. **Commit Your Changes**: Commit your changes with a clear and descriptive commit message:
    ```bash
@@ -31,7 +36,7 @@ To contribute to this project, please follow these steps:
    git push origin feature/new-feature
    ```
 
-8. **Create a Pull Request (PR)**: Go to the original repository on GitHub and create a Pull Request. Provide a clear title and description for your PR, and make sure to reference any relevant issues.
+8. **Create a Pull Request (PR)**: Go to the original repository on GitHub and create a Pull Request. Provide a clear title and description for your PR, and make sure to reference any relevant issues. The `lint`, `tests`, and `security` workflows run on every PR.
 
 9. **Review and Discussion**: Your PR will be reviewed by the project maintainers and other contributors. Be prepared to make changes and engage in discussions if needed.
 
@@ -49,7 +54,7 @@ Please follow these guidelines when contributing to the Spartan project:
 
 ## Reporting Issues
 
-If you encounter any bugs or issues with the project, please report them using the [GitHub Issue Tracker](https://github.com/nerdmonkey/spartan-framework/issues). Provide detailed information about the issue, including how to reproduce it if possible.
+If you encounter any bugs or issues with the project, please report them using the [GitHub Issue Tracker](https://github.com/nerdmonkey/spartan-orbit/issues). Provide detailed information about the issue, including how to reproduce it if possible.
 
 ## Community Guidelines
 
