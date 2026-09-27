@@ -174,7 +174,7 @@ def test_storage_settings_class(monkeypatch):
     assert settings.storage_path == "test/path"
 
 
-def test_storage_settings_defaults(monkeypatch):
+def test_storage_settings_class_defaults(monkeypatch):
     """Test StorageSettings with default values."""
     mapping = {}
     monkeypatch.setattr("app.helpers.environment.env", make_env(mapping))

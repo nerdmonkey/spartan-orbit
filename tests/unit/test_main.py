@@ -1,7 +1,7 @@
-from unittest.mock import MagicMock, patch
+import os
 import subprocess
 import sys
-import os
+from unittest.mock import MagicMock, patch
 
 
 def test_main_function_logs_event():
@@ -41,7 +41,7 @@ def test_main_function_exception_handling():
     mock_event = MagicMock()
     mock_event.__getitem__.side_effect = Exception("Event access error")
 
-    with patch("main.logger") as mock_logger, patch("main.env") as mock_env:
+    with patch("main.logger") as mock_logger, patch("main.env"):
         from main import main
 
         try:

@@ -2813,7 +2813,7 @@ class ParameterManagerService:
                         "operation": operation,
                         "parameter_name": parameter_name,
                         "version": version,
-                        "secret_references_found": 0,
+                        "secret_references_found": 0,  # nosec B105
                     },
                 )
 
@@ -3735,7 +3735,7 @@ class ParameterManagerService:
                     "full_reference": full_reference,
                     "secret_path": secret_path,
                     "project_id": None,
-                    "secret_name": None,
+                    "secret_name": None,  # nosec B105
                     "version": None,
                     "is_valid": False,
                 }

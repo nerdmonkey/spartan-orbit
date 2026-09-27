@@ -1,4 +1,3 @@
-import os
 from typing import Dict, List, Optional, Type
 
 from app.helpers.environment import env

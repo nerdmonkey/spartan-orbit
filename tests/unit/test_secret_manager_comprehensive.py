@@ -3,30 +3,32 @@ Comprehensive tests for SecretManager service with proper GCP SDK mocking.
 Focuses on credential detection, pagination, and utility methods to improve coverage.
 """
 
-import os
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
+
 import pytest
 from google.api_core import exceptions as gcp_exceptions
-from google.oauth2 import service_account
 
 
 class TestSecretManagerProjectDetection:
     """Test project ID detection from various sources."""
 
+    @patch("app.services.secret_manager.secretmanager")
     @patch("app.services.secret_manager.env")
-    def test_framework_env_project_id_success(self, mock_env):
+    def test_framework_env_project_id_success(self, mock_env, mock_sm):
         """Test successful project ID detection from GOOGLE_CLOUD_PROJECT."""
         from app.services.secret_manager import SecretManagerService
 
         mock_env.side_effect = lambda key, default=None: {
             "GOOGLE_CLOUD_PROJECT": "test-project-456"
         }.get(key, default)
+        mock_sm.SecretManagerServiceClient.return_value = MagicMock()
 
         service = SecretManagerService()
         assert service.project_id == "test-project-456"
 
+    @patch("app.services.secret_manager.secretmanager")
     @patch("app.services.secret_manager.env")
-    def test_framework_env_project_id_exception(self, mock_env):
+    def test_framework_env_project_id_exception(self, mock_env, mock_sm, monkeypatch):
         """Test project ID detection handles exceptions."""
         from app.services.secret_manager import SecretManagerService
 
@@ -36,32 +38,42 @@ class TestSecretManagerProjectDetection:
             return default
 
         mock_env.side_effect = env_side_effect
+        mock_sm.SecretManagerServiceClient.return_value = MagicMock()
 
-        # Should not raise, should fall back
+        # Framework env raises, should fall back to standard env vars
+        monkeypatch.setenv("GOOGLE_CLOUD_PROJECT", "fallback-project")
         service = SecretManagerService()
+        assert service.project_id == "fallback-project"
 
+    @patch("app.services.secret_manager.secretmanager")
     @patch("app.services.secret_manager.default_credentials")
     @patch("app.services.secret_manager.env")
-    def test_standard_env_vars_project_id(self, mock_env, mock_creds):
+    def test_standard_env_vars_project_id(
+        self, mock_env, mock_creds, mock_sm, monkeypatch
+    ):
         """Test project ID from standard GCP environment variables."""
         from app.services.secret_manager import SecretManagerService
 
-        mock_env.side_effect = lambda key, default=None: {
-            "GCP_PROJECT": "gcp-env-project"
-        }.get(key, default)
-
+        # Framework env has nothing, forcing fallback to standard env vars
+        mock_env.return_value = None
         mock_creds.return_value = (MagicMock(), "gcp-env-project")
+        mock_sm.SecretManagerServiceClient.return_value = MagicMock()
+        monkeypatch.setenv("GCP_PROJECT", "gcp-env-project")
 
         service = SecretManagerService()
+        assert service.project_id == "gcp-env-project"
 
 
 class TestSecretManagerCredentialLoading:
     """Test credential loading from various sources."""
 
+    @patch("app.services.secret_manager.secretmanager")
     @patch("os.path.exists")
     @patch("app.services.secret_manager.service_account")
     @patch("app.services.secret_manager.env")
-    def test_framework_credentials_success(self, mock_env, mock_sa, mock_exists):
+    def test_framework_credentials_success(
+        self, mock_env, mock_sa, mock_exists, mock_sm
+    ):
         """Test loading credentials from GOOGLE_APPLICATION_CREDENTIALS."""
         from app.services.secret_manager import SecretManagerService
 
@@ -75,8 +87,9 @@ class TestSecretManagerCredentialLoading:
         mock_creds = MagicMock()
         mock_creds.service_account_email = "sa@example.iam.gserviceaccount.com"
         mock_sa.Credentials.from_service_account_file.return_value = mock_creds
+        mock_sm.SecretManagerServiceClient.return_value = MagicMock()
 
-        service = SecretManagerService()
+        SecretManagerService()
         # Should successfully initialize with credentials configured
 
     @patch("app.services.secret_manager.secretmanager")
@@ -99,13 +112,16 @@ class TestSecretManagerCredentialLoading:
             "GOOGLE_CLOUD_PROJECT": "test-project",
         }.get(key, default)
 
-        service = SecretManagerService()
+        SecretManagerService()
         mock_sa.Credentials.from_service_account_file.assert_not_called()
 
+    @patch("app.services.secret_manager.secretmanager")
     @patch("os.path.exists")
     @patch("app.services.secret_manager.service_account")
     @patch("app.services.secret_manager.env")
-    def test_framework_credentials_invalid_file(self, mock_env, mock_sa, mock_exists):
+    def test_framework_credentials_invalid_file(
+        self, mock_env, mock_sa, mock_exists, mock_sm
+    ):
         """Test handling of invalid credentials file."""
         from app.services.secret_manager import SecretManagerService
 
@@ -119,49 +135,56 @@ class TestSecretManagerCredentialLoading:
         mock_sa.Credentials.from_service_account_file.side_effect = ValueError(
             "Parse error"
         )
+        mock_sm.SecretManagerServiceClient.return_value = MagicMock()
 
         # Should handle gracefully
-        service = SecretManagerService()
+        SecretManagerService()
 
+    @patch("app.services.secret_manager.secretmanager")
     @patch("app.services.secret_manager.default_credentials")
     @patch("app.services.secret_manager.env")
-    def test_default_credentials_fallback(self, mock_env, mock_creds):
+    def test_default_credentials_fallback(self, mock_env, mock_creds, mock_sm):
         """Test fallback to default application credentials."""
         from app.services.secret_manager import SecretManagerService
 
         mock_env.return_value = None
         mock_default_creds = MagicMock()
         mock_creds.return_value = (mock_default_creds, "default-project")
+        mock_sm.SecretManagerServiceClient.return_value = MagicMock()
 
-        service = SecretManagerService()
+        SecretManagerService(project_id="test-project")
         mock_creds.assert_called()
 
 
 class TestSecretManagerCacheBehavior:
     """Test caching mechanisms."""
 
+    @patch("app.services.secret_manager.secretmanager")
     @patch("app.services.secret_manager.env")
-    def test_cache_enabled_initialization(self, mock_env):
+    def test_cache_enabled_initialization(self, mock_env, mock_sm):
         """Test service initialization with caching enabled."""
         from app.services.secret_manager import SecretManagerService
 
         mock_env.side_effect = lambda key, default=None: {
             "GOOGLE_CLOUD_PROJECT": "test-project"
         }.get(key, default)
+        mock_sm.SecretManagerServiceClient.return_value = MagicMock()
 
         service = SecretManagerService(enable_cache=True, cache_ttl_seconds=600)
 
         assert service.enable_cache is True
         assert service.cache_ttl_seconds == 600
 
+    @patch("app.services.secret_manager.secretmanager")
     @patch("app.services.secret_manager.env")
-    def test_cache_disabled_initialization(self, mock_env):
+    def test_cache_disabled_initialization(self, mock_env, mock_sm):
         """Test service initialization with caching disabled."""
         from app.services.secret_manager import SecretManagerService
 
         mock_env.side_effect = lambda key, default=None: {
             "GOOGLE_CLOUD_PROJECT": "test-project"
         }.get(key, default)
+        mock_sm.SecretManagerServiceClient.return_value = MagicMock()
 
         service = SecretManagerService(enable_cache=False)
 
@@ -171,14 +194,16 @@ class TestSecretManagerCacheBehavior:
 class TestSecretManagerLogging:
     """Test logging operations."""
 
+    @patch("app.services.secret_manager.secretmanager")
     @patch("app.services.secret_manager.env")
-    def test_log_operation_start(self, mock_env):
+    def test_log_operation_start(self, mock_env, mock_sm):
         """Test operation start logging."""
         from app.services.secret_manager import SecretManagerService
 
         mock_env.side_effect = lambda key, default=None: {
             "GOOGLE_CLOUD_PROJECT": "test-project"
         }.get(key, default)
+        mock_sm.SecretManagerServiceClient.return_value = MagicMock()
 
         service = SecretManagerService()
         start_time = service._log_operation_start(
@@ -188,14 +213,16 @@ class TestSecretManagerLogging:
         assert isinstance(start_time, float)
         assert start_time > 0
 
+    @patch("app.services.secret_manager.secretmanager")
     @patch("app.services.secret_manager.env")
-    def test_log_operation_success(self, mock_env):
+    def test_log_operation_success(self, mock_env, mock_sm):
         """Test operation success logging."""
         from app.services.secret_manager import SecretManagerService
 
         mock_env.side_effect = lambda key, default=None: {
             "GOOGLE_CLOUD_PROJECT": "test-project"
         }.get(key, default)
+        mock_sm.SecretManagerServiceClient.return_value = MagicMock()
 
         service = SecretManagerService()
         start_time = service._log_operation_start("create_secret")
@@ -203,14 +230,16 @@ class TestSecretManagerLogging:
         # Should not raise
         service._log_operation_success("create_secret", start_time)
 
+    @patch("app.services.secret_manager.secretmanager")
     @patch("app.services.secret_manager.env")
-    def test_log_operation_error(self, mock_env):
+    def test_log_operation_error(self, mock_env, mock_sm):
         """Test operation error logging."""
         from app.services.secret_manager import SecretManagerService
 
         mock_env.side_effect = lambda key, default=None: {
             "GOOGLE_CLOUD_PROJECT": "test-project"
         }.get(key, default)
+        mock_sm.SecretManagerServiceClient.return_value = MagicMock()
 
         service = SecretManagerService()
         start_time = service._log_operation_start("delete_secret")
@@ -259,14 +288,16 @@ class TestSecretManagerClientInitialization:
 class TestSecretManagerPathFormatting:
     """Test secret path formatting utilities."""
 
+    @patch("app.services.secret_manager.secretmanager")
     @patch("app.services.secret_manager.env")
-    def test_format_secret_name(self, mock_env):
+    def test_format_secret_name(self, mock_env, mock_sm):
         """Test secret name formatting."""
         from app.services.secret_manager import SecretManagerService
 
         mock_env.side_effect = lambda key, default=None: {
             "GOOGLE_CLOUD_PROJECT": "test-project"
         }.get(key, default)
+        mock_sm.SecretManagerServiceClient.return_value = MagicMock()
 
         service = SecretManagerService()
 
@@ -276,14 +307,16 @@ class TestSecretManagerPathFormatting:
             assert "my-secret" in secret_path
             assert "test-project" in secret_path
 
+    @patch("app.services.secret_manager.secretmanager")
     @patch("app.services.secret_manager.env")
-    def test_format_secret_version_name(self, mock_env):
+    def test_format_secret_version_name(self, mock_env, mock_sm):
         """Test secret version name formatting."""
         from app.services.secret_manager import SecretManagerService
 
         mock_env.side_effect = lambda key, default=None: {
             "GOOGLE_CLOUD_PROJECT": "test-project"
         }.get(key, default)
+        mock_sm.SecretManagerServiceClient.return_value = MagicMock()
 
         service = SecretManagerService()
 
@@ -295,14 +328,16 @@ class TestSecretManagerPathFormatting:
 class TestSecretManagerErrorHandling:
     """Test error handling and exception mapping."""
 
+    @patch("app.services.secret_manager.secretmanager")
     @patch("app.services.secret_manager.env")
-    def test_handle_connection_test_error(self, mock_env):
+    def test_handle_connection_test_error(self, mock_env, mock_sm):
         """Test connection test error handling."""
         from app.services.secret_manager import SecretManagerService
 
         mock_env.side_effect = lambda key, default=None: {
             "GOOGLE_CLOUD_PROJECT": "test-project"
         }.get(key, default)
+        mock_sm.SecretManagerServiceClient.return_value = MagicMock()
 
         service = SecretManagerService()
 
@@ -316,8 +351,8 @@ class TestSecretManagerErrorHandling:
     @patch("app.services.secret_manager.env")
     def test_handle_client_initialization_error(self, mock_env, mock_logger, mock_sm):
         """Test client initialization error handling."""
-        from app.services.secret_manager import SecretManagerService
         from app.exceptions.secret_manager import SecretManagerException
+        from app.services.secret_manager import SecretManagerService
 
         mock_logger.return_value = MagicMock()
         mock_sm.SecretManagerServiceClient.return_value = MagicMock()
@@ -337,42 +372,48 @@ class TestSecretManagerErrorHandling:
 class TestSecretManagerProjectConfiguration:
     """Test project configuration options."""
 
+    @patch("app.services.secret_manager.secretmanager")
     @patch("app.services.secret_manager.env")
-    def test_explicit_project_id(self, mock_env):
+    def test_explicit_project_id(self, mock_env, mock_sm):
         """Test service with explicit project ID."""
         from app.services.secret_manager import SecretManagerService
 
         mock_env.return_value = None
+        mock_sm.SecretManagerServiceClient.return_value = MagicMock()
 
         service = SecretManagerService(project_id="explicit-project")
         assert service.project_id == "explicit-project"
 
+    @patch("app.services.secret_manager.secretmanager")
     @patch("app.services.secret_manager.env")
-    def test_project_detection_fallback_chain(self, mock_env):
+    def test_project_detection_fallback_chain(self, mock_env, mock_sm, monkeypatch):
         """Test project ID detection fallback chain."""
         from app.services.secret_manager import SecretManagerService
 
-        # Simulate env var not found, falls back to default
+        # Simulate framework env not found, falls back to standard env vars
         mock_env.side_effect = lambda key, default=None: default
+        mock_sm.SecretManagerServiceClient.return_value = MagicMock()
+        monkeypatch.setenv("GOOGLE_CLOUD_PROJECT", "fallback-chain-project")
 
-        # Should try multiple detection methods
         service = SecretManagerService()
-        # Project ID will come from one of the fallback methods
+        assert service.project_id == "fallback-chain-project"
 
 
 class TestSecretManagerCredentialsChain:
     """Test credentials detection chain."""
 
+    @patch("app.services.secret_manager.secretmanager")
     @patch("app.services.secret_manager.service_account")
     @patch("app.services.secret_manager.env")
-    def test_credentials_detection_order(self, mock_env, mock_sa):
+    def test_credentials_detection_order(self, mock_env, mock_sa, mock_sm):
         """Test credentials are detected in correct order."""
         from app.services.secret_manager import SecretManagerService
 
         mock_env.return_value = None
+        mock_sm.SecretManagerServiceClient.return_value = MagicMock()
 
         # Should try framework env, then default credentials
-        service = SecretManagerService()
+        SecretManagerService(project_id="test-project")
 
 
 class TestSecretManagerConnectionTesting:

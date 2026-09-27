@@ -11,9 +11,9 @@ import pytest
 from pydantic import ValidationError
 
 from app.requests.secret_manager import (
+    SecretAccessRequest,
     SecretCreateRequest,
     SecretVersionCreateRequest,
-    SecretAccessRequest,
 )
 
 

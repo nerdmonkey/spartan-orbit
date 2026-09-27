@@ -3,11 +3,7 @@ Comprehensive tests for ParameterManager service with proper GCP SDK mocking.
 Focuses on credential detection, pagination, and utility methods to improve coverage.
 """
 
-import os
-from unittest.mock import MagicMock, Mock, patch, call
-import pytest
-from google.api_core import exceptions as gcp_exceptions
-from google.oauth2 import service_account
+from unittest.mock import MagicMock, patch
 
 
 class TestParameterManagerProjectDetection:
@@ -26,7 +22,7 @@ class TestParameterManagerProjectDetection:
         assert service.project_id == "test-project-123"
 
     @patch("app.services.parameter_manager.env")
-    def test_framework_env_project_id_exception(self, mock_env):
+    def test_framework_env_project_id_exception(self, mock_env, monkeypatch):
         """Test project ID detection handles exceptions from env."""
         from app.services.parameter_manager import ParameterManagerService
 
@@ -37,24 +33,24 @@ class TestParameterManagerProjectDetection:
 
         mock_env.side_effect = env_side_effect
 
-        # Should not raise, should fall back to other methods
+        # Framework env raises, should fall back to standard env vars
+        monkeypatch.setenv("GOOGLE_CLOUD_PROJECT", "fallback-project")
         service = ParameterManagerService()
-        # Will use default or other detection methods
+        assert service.project_id == "fallback-project"
 
     @patch("app.services.parameter_manager.default_credentials")
     @patch("app.services.parameter_manager.env")
-    def test_standard_env_vars_project_id(self, mock_env, mock_creds):
+    def test_standard_env_vars_project_id(self, mock_env, mock_creds, monkeypatch):
         """Test project ID detection from standard GCP env vars."""
         from app.services.parameter_manager import ParameterManagerService
 
-        mock_env.side_effect = lambda key, default=None: {
-            "GCP_PROJECT": "env-var-project"
-        }.get(key, default)
-
+        # Framework env has nothing, forcing fallback to standard env vars
+        mock_env.return_value = None
         mock_creds.return_value = (MagicMock(), "env-var-project")
+        monkeypatch.setenv("GCP_PROJECT", "env-var-project")
 
         service = ParameterManagerService()
-        # Should detect from standard env vars or default credentials
+        assert service.project_id == "env-var-project"
 
 
 class TestParameterManagerCredentialLoading:
@@ -78,7 +74,7 @@ class TestParameterManagerCredentialLoading:
         mock_creds.service_account_email = "test@example.iam.gserviceaccount.com"
         mock_sa.Credentials.from_service_account_file.return_value = mock_creds
 
-        service = ParameterManagerService()
+        ParameterManagerService()
         # Should successfully initialize with credentials configured
 
     @patch("app.services.parameter_manager.get_logger")
@@ -99,7 +95,7 @@ class TestParameterManagerCredentialLoading:
             "GOOGLE_CLOUD_PROJECT": "test-project",
         }.get(key, default)
 
-        service = ParameterManagerService()
+        ParameterManagerService()
         # Should not attempt to load from non-existent file
         mock_sa.Credentials.from_service_account_file.assert_not_called()
 
@@ -122,7 +118,7 @@ class TestParameterManagerCredentialLoading:
         )
 
         # Should log warning but continue
-        service = ParameterManagerService()
+        ParameterManagerService()
         # Service should still initialize
 
     @patch("app.services.parameter_manager.default_credentials")
@@ -135,7 +131,7 @@ class TestParameterManagerCredentialLoading:
         mock_creds = MagicMock()
         mock_default_creds.return_value = (mock_creds, "default-project")
 
-        service = ParameterManagerService()
+        ParameterManagerService(project_id="test-project")
         # Should use default credentials
         mock_default_creds.assert_called()
 

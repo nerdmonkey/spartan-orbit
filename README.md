@@ -1,12 +1,39 @@
-<p align="center"><img src="docs/ssf_banner.png" alt="Orbit - Serverless Framework for Azure"></p>
+<p align="center"><img src="docs/ssf_banner.png" alt="Social Card of Spartan"></p>
 
-# Orbit
-### Spartan for Azure
+<h1 align="center">Orbit — Spartan for Azure</h1>
+
+<p align="center">
+  <a href="https://github.com/nerdmonkey/spartan-orbit/actions/workflows/lint.yml"><img src="https://github.com/nerdmonkey/spartan-orbit/actions/workflows/lint.yml/badge.svg" alt="Lint"></a>
+  <a href="https://github.com/nerdmonkey/spartan-orbit/actions/workflows/tests.yml"><img src="https://github.com/nerdmonkey/spartan-orbit/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
+  <a href="https://github.com/nerdmonkey/spartan-orbit/actions/workflows/security.yml"><img src="https://github.com/nerdmonkey/spartan-orbit/actions/workflows/security.yml/badge.svg" alt="Security"></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+  <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="Python 3.11+">
+</p>
 
 ## About
-Orbit is a modern serverless framework for building scalable, event-driven Python applications on **Azure Functions**. Built on the Spartan framework principles, it leverages Python Programming Model V2 with decorators for clean, maintainable code and seamless Azure integration.
 
----
+Orbit is the Azure variant of the Spartan Serverless Framework. Built on the Spartan framework principles, it leverages Azure Functions' Python Programming Model V2 with decorators for clean, maintainable code and seamless Azure integration.
+
+Orbit is versatile and can be used to efficiently develop:
+
+- HTTP-triggered APIs
+- Event Grid-triggered, event-driven workloads
+- Small or medium-sized ETL pipelines
+- Agentic AI (coming soon)
+
+## Table of Contents
+
+- [Features](#features)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Project Structure](#project-structure)
+- [Testing](#testing)
+- [Changelog](#changelog)
+- [Contributing](#contributing)
+- [Security Vulnerabilities](#security-vulnerabilities)
+- [Credits](#credits)
+- [License](#license)
 
 ## Features
 
@@ -33,21 +60,25 @@ Orbit is a modern serverless framework for building scalable, event-driven Pytho
 | **Multi-Cloud Ready**          | ✅ Extensible                 | Abstraction layers support AWS, Azure, local environments    |
 | **Code Consistency**           | ✅ Consistent with minor gaps | Naming conventions, model structures, unified patterns       |
 
----
+## Requirements
 
-## Installation & Usage
+- Python 3.11+
+- pip (or [Poetry](https://python-poetry.org/), which the project's tox environments use)
+- [`python-spartan`](https://pypi.org/project/python-spartan/) CLI (`pip install python-spartan`)
+- [Azure Functions Core Tools v4](https://docs.microsoft.com/azure/azure-functions/functions-run-local) — only needed for local runs and deployment
+- [Azurite](https://learn.microsoft.com/azure/storage/common/storage-use-azurite) — local storage emulator required by `func start`
+- [Azure CLI](https://learn.microsoft.com/cli/azure/) (`az`) — only needed for deploying to Azure
 
-1. **Install the Spartan CLI tool:**
+## Installation
+
+Clone the repo:
+
 ```bash
-pip install python-spartan
+git clone https://github.com/nerdmonkey/spartan-orbit.git
+cd spartan-orbit
 ```
 
-2. **Try it out:**
-```bash
-spartan --help
-```
-
-3. **Set up your environment:**
+Set up your environment:
 
 <details>
 <summary><strong>▶️ For Linux / macOS</strong></summary>
@@ -82,7 +113,7 @@ pip install -r requirements-dev.txt
 
 </details>
 
-4. **Copy and configure environment variables:**
+Copy and configure environment variables:
 
 ```bash
 cp .env.example .env  # Linux/macOS
@@ -96,13 +127,12 @@ copy .env.example .env  # PowerShell
 copy .env.example .env  # CMD
 ```
 
----
-
-## Running the Application
+## Usage
 
 ### Local Development
 
-**Start Azure Functions Locally:**
+**Start Azure Functions locally:**
+
 ```bash
 # Install Azure Functions Core Tools (if not already installed)
 # macOS: brew tap azure/functions && brew install azure-functions-core-tools@4
@@ -116,7 +146,8 @@ azurite --silent --location /tmp/azurite --debug /tmp/azurite/debug.log &
 func start
 ```
 
-**Test Functions with Event Grid:**
+**Test functions with Event Grid:**
+
 ```bash
 # Test queue function
 curl -X POST http://localhost:7071/runtime/webhooks/EventGrid?functionName=queue \
@@ -161,6 +192,7 @@ curl -X POST http://localhost:7071/runtime/webhooks/EventGrid?functionName=key_v
 ### Deployment to Azure
 
 **Deploy with Azure CLI:**
+
 ```bash
 # Login to Azure
 az login
@@ -183,13 +215,12 @@ az functionapp create \
 func azure functionapp publish spartan-orbit-micro
 ```
 
-**Configure Event Grid Subscriptions:**
+**Configure Event Grid subscriptions:**
+
 ```bash
 # After deployment, create Event Grid subscriptions for your functions
 # See Azure Functions Event Grid documentation for details
 ```
-
----
 
 ## Project Structure
 
@@ -221,43 +252,38 @@ All functions are defined in `function_app.py` using Python Programming Model V2
 - **`app_configuration`** - Event Grid trigger for Azure App Configuration management
 - **`key_vault`** - Event Grid trigger for Azure Key Vault secret/key operations
 
----
-
 ## Testing
 
-Run the test suite using `pytest`:
+Run the unit test suite with coverage:
 
 ```bash
-pytest -vv
+source .venv/bin/activate
+python -m pytest tests/unit -q --cov=app --cov=config --cov-report=term-missing
 ```
 
----
+Alternatively, via tox (installs dependencies through Poetry):
+
+```bash
+tox -e coverage
+```
 
 ## Changelog
 
-Please see [CHANGELOG](CHANGELOG.md) for recent updates.
-
----
+Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.
 
 ## Contributing
 
-Please see [CONTRIBUTING](./docs/CONTRIBUTING.md) for details on contributing.
-
----
+Please see [CONTRIBUTING](./docs/CONTRIBUTING.md) for details.
 
 ## Security Vulnerabilities
 
-Please review [our security policy](../../security/policy) for how to report vulnerabilities.
-
----
+Please review [our security policy](../../security/policy) on how to report security vulnerabilities.
 
 ## Credits
 
 - [Sydel Palinlin](https://github.com/nerdmonkey)
 - [All Contributors](../../contributors)
 
----
-
 ## License
 
-The MIT License (MIT). Please see the [License File](LICENSE) for more information.
+The MIT License (MIT). Please see [License File](LICENSE) for more information.

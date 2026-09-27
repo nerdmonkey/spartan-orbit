@@ -7,9 +7,7 @@ particularly the empty string to None conversion.
 Coverage Target: app/helpers/environment.py Line 60
 """
 
-import pytest
 import os
-from pydantic import ValidationError
 
 from app.helpers.environment import EnvironmentVariables
 

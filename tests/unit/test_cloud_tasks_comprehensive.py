@@ -1,13 +1,9 @@
 """
 Comprehensive tests for CloudTasks service with proper GCP SDK mocking.
-Focuses on credential detection, queue management, and task operations to improve coverage.
+Focuses on credential detection, queue management, and task ops.
 """
 
-import os
-from unittest.mock import MagicMock, Mock, patch
-import pytest
-from google.api_core import exceptions as gcp_exceptions
-from google.oauth2 import service_account
+from unittest.mock import MagicMock, patch
 
 
 class TestCloudTasksProjectDetection:
@@ -42,7 +38,7 @@ class TestCloudTasksProjectDetection:
 
         mock_tasks.CloudTasksClient.return_value = MagicMock()
 
-        service = CloudTasksService()
+        CloudTasksService()
 
     @patch("app.services.cloud_tasks.tasks_v2")
     @patch("app.services.cloud_tasks.env")
