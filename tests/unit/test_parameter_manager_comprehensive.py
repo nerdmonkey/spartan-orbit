@@ -40,18 +40,17 @@ class TestParameterManagerProjectDetection:
 
     @patch("app.services.parameter_manager.default_credentials")
     @patch("app.services.parameter_manager.env")
-    def test_standard_env_vars_project_id(self, mock_env, mock_creds):
+    def test_standard_env_vars_project_id(self, mock_env, mock_creds, monkeypatch):
         """Test project ID detection from standard GCP env vars."""
         from app.services.parameter_manager import ParameterManagerService
 
-        mock_env.side_effect = lambda key, default=None: {
-            "GCP_PROJECT": "env-var-project"
-        }.get(key, default)
-
+        # Framework env has nothing, forcing fallback to standard env vars
+        mock_env.return_value = None
         mock_creds.return_value = (MagicMock(), "env-var-project")
+        monkeypatch.setenv("GCP_PROJECT", "env-var-project")
 
-        ParameterManagerService()
-        # Should detect from standard env vars or default credentials
+        service = ParameterManagerService()
+        assert service.project_id == "env-var-project"
 
 
 class TestParameterManagerCredentialLoading:
@@ -132,7 +131,7 @@ class TestParameterManagerCredentialLoading:
         mock_creds = MagicMock()
         mock_default_creds.return_value = (mock_creds, "default-project")
 
-        ParameterManagerService()
+        ParameterManagerService(project_id="test-project")
         # Should use default credentials
         mock_default_creds.assert_called()
 
