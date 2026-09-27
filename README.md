@@ -227,11 +227,16 @@ func azure functionapp publish spartan-orbit-micro
 ```
 spartan-orbit-micro/
 ├── app/
+│   ├── exceptions/        # Custom exception types
 │   ├── helpers/           # Utility helpers (logger, environment, context, tracer)
+│   ├── requests/          # Request/input models
+│   ├── responses/         # Response/output models
 │   └── services/
-│       └── logging/       # Logger implementations (azure, file, stream, both)
+│       ├── logging/       # Logger implementations (azure, file, stream, both)
+│       └── tracing/       # Distributed tracing implementations
 ├── config/                # Configuration files
-├── docs/                  # Documentation
+├── docs/                  # Documentation (banner, CONTRIBUTING, CODE_OF_CONDUCT)
+├── scripts/               # Release tooling (CHANGELOG promotion, etc.)
 ├── tests/                 # Test suites
 │   ├── unit/             # Unit tests
 │   ├── integration/      # Integration tests
